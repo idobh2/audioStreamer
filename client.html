@@ -1,0 +1,78 @@
+<body>
+	<select id="audioSource"></select>
+<body>
+<script src="socket.io/socket.io.js"></script>
+<script src="/createPeerConnection.js"></script>
+<script type="text/javascript">
+	var selectElement = document.getElementById("audioSource");
+	
+	var socket = io("https://<ip>:<port>/");
+	socket.on("role", function(){
+		socket.emit("role", "client");
+	});
+	socket.on("start", function(){
+		initAudio();
+	});
+	
+	function gotStream(stream) {
+	    try {
+			//audioElement.srcObject = stream;
+	        let pc1 = createPeerConnection(socket);
+			pc1.addStream(stream);
+			pc1.createOffer({
+				offerToReceiveAudio: 1
+			}).then(
+				pc1.handleDescription,
+				function(desc){
+					debugger;
+				}
+			);
+	    } catch (e) {
+	        console.error(e);
+	    }
+	}
+	function getAudioDevice(deviceId){
+		navigator.getUserMedia({
+			"audio": {
+				deviceId:{
+					exact: deviceId
+				} 
+			},
+		}, gotStream, function(e) {
+			alert('Error getting audio');
+			console.log(e);
+		});
+	}
+	function initAudio() {
+	    if (!navigator.getUserMedia)
+	        navigator.getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+	    if (!navigator.cancelAnimationFrame)
+	        navigator.cancelAnimationFrame = navigator.webkitCancelAnimationFrame || navigator.mozCancelAnimationFrame;
+	    if (!navigator.requestAnimationFrame)
+	        navigator.requestAnimationFrame = navigator.webkitRequestAnimationFrame || navigator.mozRequestAnimationFrame;
+		navigator.mediaDevices.enumerateDevices().then((devs) => {
+			let deviceId;
+			selectElement.innerHTML = "";
+			for(const device of devs){
+				if(device.kind != "audioinput"){
+					continue;
+				}
+				let option = document.createElement("option");
+				option.value = device.deviceId;
+				option.innerHTML = device.label;
+				option.selected = localStorage.audioStreamerLastDevice == device.deviceId;
+				selectElement.appendChild(option);
+			};
+			selectElement.onchange = function(e){
+				getAudioDevice(e.target.value);
+				localStorage.audioStreamerLastDevice = e.target.value;
+			};
+			if(localStorage.audioStreamerLastDevice){
+				getAudioDevice(localStorage.audioStreamerLastDevice);
+			}
+		});
+		
+	    
+	}
+	
+</script>

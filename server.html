@@ -1,0 +1,35 @@
+<body>
+	<audio id="audioElement" autoplay controls></audio>
+<body>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/createPeerConnection.js"></script>
+<script type="text/javascript">
+	var audioElement = document.getElementById("audioElement");
+	var palying = false;
+	window.AudioContext = window.AudioContext || window.webkitAudioContext || window.mozAudioContext;
+	var context = new AudioContext();
+	var socket = io("https://<ip>:<port>/");
+	socket.on("role", function(){
+		socket.emit("role", "server");
+	});	
+	socket.on("start", function(){
+		var pc2 = createPeerConnection(socket);
+		//stream
+		pc2.onaddstream = function(e){
+			if(palying){
+				location.reload();
+				return;
+			}
+			audioElement.src = URL.createObjectURL(e.stream);
+			palying = true;
+		};
+		pc2.onDescriptionArrival(function(){
+			pc2.createAnswer(pc2.remoteDescription).then(
+				pc2.handleDescription,
+				function(desc){
+					debugger;
+				}
+			);
+		})
+	})
+</script>
